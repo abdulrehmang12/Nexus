@@ -18,6 +18,7 @@ const swaggerSpec = require('./docs/swagger');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
+let mongoReady = false;
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
@@ -56,7 +57,12 @@ app.use('/api', apiLimiter);
 app.use('/uploads', express.static('uploads'));
 
 // Routes
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/health', (_req, res) =>
+  res.json({
+    ok: true,
+    database: mongoReady ? 'connected' : 'connecting',
+  })
+);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
@@ -98,13 +104,15 @@ io.on('connection', (socket) => {
   });
 });
 
-// Database and Server Start
+// Server and Database Start
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/nexus';
+
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('MongoDB Connected');
-    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    mongoReady = true;
   })
   .catch(err => console.error(err));
