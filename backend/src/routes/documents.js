@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const Document = require('../models/Document');
 const auth = require('../middlewares/auth');
+const authorize = require('../middlewares/authorize');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeString, parsePositiveNumber } = require('../utils/validation');
@@ -37,7 +38,7 @@ const allowedMimeTypes = new Set([
   'text/plain',
 ]);
 
-router.post('/upload', auth, upload.single('document'), async (req, res) => {
+router.post('/upload', auth, authorize('investor', 'entrepreneur'), upload.single('document'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ msg: 'Document file is required' });
@@ -63,7 +64,7 @@ router.post('/upload', auth, upload.single('document'), async (req, res) => {
   }
 });
 
-router.post('/:id/sign', auth, upload.single('signature'), async (req, res) => {
+router.post('/:id/sign', auth, authorize('investor', 'entrepreneur'), upload.single('signature'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ msg: 'Signature image is required' });
@@ -88,7 +89,7 @@ router.post('/:id/sign', auth, upload.single('signature'), async (req, res) => {
   }
 });
 
-router.get('/', auth, async (_req, res) => {
+router.get('/', auth, authorize('investor', 'entrepreneur'), async (_req, res) => {
   try {
     const docs = await Document.find()
       .populate('uploadedBy', 'name email role')

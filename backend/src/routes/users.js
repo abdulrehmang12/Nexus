@@ -1,13 +1,14 @@
 const express = require('express');
 const User = require('../models/User');
 const auth = require('../middlewares/auth');
+const authorize = require('../middlewares/authorize');
 const { sanitizeString } = require('../utils/validation');
 
 const router = express.Router();
 
 const publicUserFields = '-password -otpCode -otpExpiresAt -resetToken -resetTokenExpiresAt';
 
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const query = {};
 
@@ -33,7 +34,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(publicUserFields);
     if (!user) {

@@ -3,6 +3,7 @@ const express = require('express');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const auth = require('../middlewares/auth');
+const authorize = require('../middlewares/authorize');
 const { parsePositiveNumber, sanitizeString } = require('../utils/validation');
 
 const router = express.Router();
@@ -61,14 +62,14 @@ const parsePaymentRequest = (req) => {
   return { amount, provider, paymentMethod, requestedStatus, note };
 };
 
-router.get('/providers', auth, (_req, res) => {
+router.get('/providers', auth, authorize('investor', 'entrepreneur'), (_req, res) => {
   res.json([
     { id: 'stripe', label: 'Stripe Sandbox' },
     { id: 'paypal', label: 'PayPal Sandbox' },
   ]);
 });
 
-router.post('/deposit', auth, async (req, res) => {
+router.post('/deposit', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const parsed = parsePaymentRequest(req);
     if (parsed.error) {
@@ -87,7 +88,7 @@ router.post('/deposit', auth, async (req, res) => {
   }
 });
 
-router.post('/withdraw', auth, async (req, res) => {
+router.post('/withdraw', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const parsed = parsePaymentRequest(req);
     if (parsed.error) {
@@ -106,7 +107,7 @@ router.post('/withdraw', auth, async (req, res) => {
   }
 });
 
-router.post('/transfer', auth, async (req, res) => {
+router.post('/transfer', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const parsed = parsePaymentRequest(req);
     if (parsed.error) {
@@ -140,7 +141,7 @@ router.post('/transfer', auth, async (req, res) => {
   }
 });
 
-router.get('/history', auth, async (req, res) => {
+router.get('/history', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const history = await Transaction.find({ user: req.user.id })
       .populate('counterpartyUserId', 'name email role')

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, FileSignature, FileText, Upload } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
 import api from '../../lib/api';
 import { Document } from '../../types';
 import { Button } from '../../components/ui/Button';
@@ -16,6 +17,28 @@ export const DocumentsPage: React.FC = () => {
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setDocumentFile(acceptedFiles[0]);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    maxFiles: 1,
+    maxSize: 10 * 1024 * 1024,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/*': ['.png', '.jpg', '.jpeg', '.svg'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/json': ['.json'],
+      'text/plain': ['.txt'],
+    },
+  });
 
   const loadDocuments = async () => {
     const { data } = await api.get<Document[]>('/documents');
@@ -81,8 +104,26 @@ export const DocumentsPage: React.FC = () => {
           <CardBody className="space-y-4">
             <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth />
             <div>
-              <label className="block text-sm font-medium text-gray-700">Document file</label>
-              <input className="mt-1 block w-full text-sm" type="file" onChange={(e) => setDocumentFile(e.target.files?.[0] || null)} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Document file</label>
+              <div
+                {...getRootProps()}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-5 text-center transition-colors ${
+                  isDragActive
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <Upload size={24} className={`mb-2 ${isDragActive ? 'text-primary-600' : 'text-gray-400'}`} />
+                {documentFile ? (
+                  <p className="text-sm font-medium text-gray-900">{documentFile.name}</p>
+                ) : isDragActive ? (
+                  <p className="text-sm text-primary-600">Drop the file here…</p>
+                ) : (
+                  <p className="text-sm text-gray-500">Drag &amp; drop a file, or click to browse</p>
+                )}
+                <p className="mt-1 text-xs text-gray-400">PDF, Word, Excel, images, JSON, text — max 10 MB</p>
+              </div>
             </div>
             <Button leftIcon={<Upload size={18} />} fullWidth isLoading={isUploading} onClick={handleUpload}>
               Upload Document

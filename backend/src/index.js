@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
+const { connectDB, getConnectionStatus } = require('./config/db');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -18,7 +18,7 @@ const swaggerSpec = require('./docs/swagger');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
-let mongoReady = false;
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
@@ -60,7 +60,7 @@ app.use('/uploads', express.static('uploads'));
 app.get('/api/health', (_req, res) =>
   res.json({
     ok: true,
-    database: mongoReady ? 'connected' : 'connecting',
+    database: getConnectionStatus() ? 'connected' : 'connecting',
   })
 );
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -106,13 +106,6 @@ io.on('connection', (socket) => {
 
 // Server and Database Start
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/nexus';
 
+connectDB();
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('MongoDB Connected');
-    mongoReady = true;
-  })
-  .catch(err => console.error(err));

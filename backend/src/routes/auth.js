@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middlewares/auth');
+const authorize = require('../middlewares/authorize');
 const {
   sanitizeString,
   sanitizeList,
@@ -134,7 +135,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/profile', auth, async (req, res) => {
+router.get('/profile', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(safeUserFields);
     if (!user) {
@@ -147,7 +148,7 @@ router.get('/profile', auth, async (req, res) => {
   }
 });
 
-router.put('/profile', auth, async (req, res) => {
+router.put('/profile', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const updates = {
       name: req.body.name ? sanitizeString(req.body.name, 120) : undefined,
@@ -230,7 +231,7 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-router.post('/change-password', auth, async (req, res) => {
+router.post('/change-password', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
@@ -255,7 +256,7 @@ router.post('/change-password', auth, async (req, res) => {
   }
 });
 
-router.post('/2fa/request', auth, async (req, res) => {
+router.post('/2fa/request', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) {
@@ -276,7 +277,7 @@ router.post('/2fa/request', auth, async (req, res) => {
   }
 });
 
-router.post('/2fa/verify', auth, async (req, res) => {
+router.post('/2fa/verify', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const { otpCode } = req.body;
     const user = await User.findById(req.user.id);

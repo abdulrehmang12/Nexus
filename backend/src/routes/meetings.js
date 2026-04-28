@@ -3,6 +3,7 @@ const express = require('express');
 const Meeting = require('../models/Meeting');
 const User = require('../models/User');
 const auth = require('../middlewares/auth');
+const authorize = require('../middlewares/authorize');
 const { sanitizeString, parseFutureDate, parsePositiveNumber } = require('../utils/validation');
 
 const router = express.Router();
@@ -10,7 +11,7 @@ const router = express.Router();
 const isParticipant = (meeting, userId) =>
   `${meeting.host}` === `${userId}` || `${meeting.guest}` === `${userId}`;
 
-router.post('/schedule', auth, async (req, res) => {
+router.post('/schedule', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const { title, date, guestId, durationMinutes = 60, notes = '' } = req.body;
 
@@ -78,7 +79,7 @@ router.post('/schedule', auth, async (req, res) => {
   }
 });
 
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const meetings = await Meeting.find({
       $or: [{ host: req.user.id }, { guest: req.user.id }],
@@ -93,7 +94,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const { status } = req.body;
     if (!['pending', 'accepted', 'rejected'].includes(status)) {
@@ -118,7 +119,7 @@ router.put('/:id/status', auth, async (req, res) => {
   }
 });
 
-router.get('/room/:roomId', auth, async (req, res) => {
+router.get('/room/:roomId', auth, authorize('investor', 'entrepreneur'), async (req, res) => {
   try {
     const meeting = await Meeting.findOne({
       roomLink: `/meetings/room/${req.params.roomId}`,
