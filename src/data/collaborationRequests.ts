@@ -5,7 +5,7 @@ export const collaborationRequests: CollaborationRequest[] = [
     id: 'req1',
     investorId: 'i1',
     entrepreneurId: 'e1',
-    message: 'Id like to explore potential investment in TechWave AI. Your AI-driven financial analytics platform aligns well with my investment thesis.',
+    message: 'Id like to explore potential investment in TechWave Analytics. Your financial analytics platform aligns well with my investment thesis.',
     status: 'pending',
     createdAt: '2023-08-10T15:30:00Z'
   },
@@ -13,7 +13,7 @@ export const collaborationRequests: CollaborationRequest[] = [
     id: 'req2',
     investorId: 'i2',
     entrepreneurId: 'e1',
-    message: 'Interested in discussing how TechWave AI can incorporate sustainable practices. Lets connect to explore potential collaboration.',
+    message: 'Interested in discussing how TechWave Analytics can incorporate sustainable practices. Lets connect to explore potential collaboration.',
     status: 'accepted',
     createdAt: '2023-08-05T11:45:00Z'
   },

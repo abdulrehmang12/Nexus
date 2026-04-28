@@ -9,6 +9,7 @@ export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [resetToken, setResetToken] = useState('');
   
   const { forgotPassword } = useAuth();
   
@@ -17,7 +18,8 @@ export const ForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await forgotPassword(email);
+      const token = await forgotPassword(email);
+      setResetToken(token);
       setIsSubmitted(true);
     } catch (error) {
       // Error is handled by the AuthContext
@@ -36,14 +38,19 @@ export const ForgotPasswordPage: React.FC = () => {
               Check your email
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              We've sent password reset instructions to {email}
+              Mock reset flow generated a token for {email}
             </p>
           </div>
           
           <div className="mt-8 bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <div className="space-y-4">
+              <div className="rounded-md bg-primary-50 p-4">
+                <p className="text-sm text-primary-800">Reset token</p>
+                <p className="mt-1 break-all font-mono text-sm text-primary-900">{resetToken}</p>
+              </div>
+
               <p className="text-sm text-gray-500">
-                Didn't receive the email? Check your spam folder or try again.
+                Use this token on the reset password screen to complete the mock recovery flow.
               </p>
               
               <Button

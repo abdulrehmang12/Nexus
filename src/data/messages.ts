@@ -6,7 +6,7 @@ export const messages: Message[] = [
     id: 'm1',
     senderId: 'e1',
     receiverId: 'i1',
-    content: 'Thanks for connecting. Id love to discuss how our AI platform can revolutionize financial analytics for SMBs.',
+    content: 'Thanks for connecting. Id love to discuss how our analytics platform can strengthen financial decisions for SMBs.',
     timestamp: '2023-08-15T10:15:00Z',
     isRead: true
   },

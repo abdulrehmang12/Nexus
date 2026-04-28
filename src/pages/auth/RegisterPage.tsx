@@ -31,13 +31,13 @@ export const RegisterPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await register(name, email, password, role);
-      // Redirect based on user role
-      navigate(role === 'entrepreneur' ? '/dashboard/entrepreneur' : '/dashboard/investor');
+      await register({ name, email, password, role });
+      navigate('/dashboard');
     } catch (err) {
       setError((err as Error).message);
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
   
   return (

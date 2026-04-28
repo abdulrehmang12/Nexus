@@ -7,29 +7,34 @@ export interface User {
   role: UserRole;
   avatarUrl: string;
   bio: string;
+  location?: string;
+  preferences?: string[];
+  twoFactorEnabled?: boolean;
   isOnline?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Entrepreneur extends User {
   role: 'entrepreneur';
-  startupName: string;
-  pitchSummary: string;
-  fundingNeeded: string;
-  industry: string;
-  location: string;
-  foundedYear: number;
-  teamSize: number;
+  startupName?: string;
+  pitchSummary?: string;
+  fundingNeeded?: string;
+  industry?: string;
+  foundedYear?: number | null;
+  teamSize?: number | null;
+  startupHistory?: string[];
 }
 
 export interface Investor extends User {
   role: 'investor';
-  investmentInterests: string[];
-  investmentStage: string[];
-  portfolioCompanies: string[];
-  totalInvestments: number;
-  minimumInvestment: string;
-  maximumInvestment: string;
+  investmentInterests?: string[];
+  investmentStage?: string[];
+  portfolioCompanies?: string[];
+  totalInvestments?: number;
+  minimumInvestment?: string;
+  maximumInvestment?: string;
+  investmentHistory?: string[];
 }
 
 export interface Message {
@@ -58,24 +63,65 @@ export interface CollaborationRequest {
 }
 
 export interface Document {
-  id: string;
-  name: string;
-  type: string;
-  size: string;
-  lastModified: string;
-  shared: boolean;
+  _id: string;
+  title: string;
+  version: number;
+  status: 'pending' | 'signed' | 'rejected';
   url: string;
-  ownerId: string;
+  signatureImageUrl?: string | null;
+  uploadedBy: User;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Meeting {
+  _id: string;
+  title: string;
+  host: User;
+  guest: User;
+  status: 'pending' | 'accepted' | 'rejected';
+  date: string;
+  durationMinutes: number;
+  notes?: string;
+  roomLink: string;
+  calendarEventId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Transaction {
+  _id: string;
+  type: 'deposit' | 'withdraw' | 'transfer';
+  provider: 'stripe' | 'paypal';
+  paymentMethod: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  reference: string;
+  providerSessionId: string;
+  note?: string;
+  counterpartyUserId?: User | null;
+  createdAt: string;
 }
 
 export interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
+  token: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
   logout: () => void;
-  forgotPassword: (email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<string>;
   resetPassword: (token: string, newPassword: string) => Promise<void>;
-  updateProfile: (userId: string, updates: Partial<User>) => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  requestTwoFactorOtp: () => Promise<string>;
+  verifyTwoFactorOtp: (otpCode: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
 }

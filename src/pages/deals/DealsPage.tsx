@@ -1,270 +1,189 @@
-import React, { useState } from 'react';
-import { Search, Filter, DollarSign, TrendingUp, Users, Calendar } from 'lucide-react';
-import { Card, CardHeader, CardBody } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, CreditCard, Wallet } from 'lucide-react';
+import api from '../../lib/api';
+import { Transaction, User } from '../../types';
 import { Button } from '../../components/ui/Button';
+import { Card, CardBody, CardHeader } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { Avatar } from '../../components/ui/Avatar';
 
-const deals = [
-  {
-    id: 1,
-    startup: {
-      name: 'TechWave AI',
-      logo: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg',
-      industry: 'FinTech'
-    },
-    amount: '$1.5M',
-    equity: '15%',
-    status: 'Due Diligence',
-    stage: 'Series A',
-    lastActivity: '2024-02-15'
-  },
-  {
-    id: 2,
-    startup: {
-      name: 'GreenLife Solutions',
-      logo: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg',
-      industry: 'CleanTech'
-    },
-    amount: '$2M',
-    equity: '20%',
-    status: 'Term Sheet',
-    stage: 'Seed',
-    lastActivity: '2024-02-10'
-  },
-  {
-    id: 3,
-    startup: {
-      name: 'HealthPulse',
-      logo: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg',
-      industry: 'HealthTech'
-    },
-    amount: '$800K',
-    equity: '12%',
-    status: 'Negotiation',
-    stage: 'Pre-seed',
-    lastActivity: '2024-02-05'
-  }
-];
+type Provider = 'stripe' | 'paypal';
+type Status = 'pending' | 'completed' | 'failed';
 
 export const DealsPage: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
-  
-  const statuses = ['Due Diligence', 'Term Sheet', 'Negotiation', 'Closed', 'Passed'];
-  
-  const toggleStatus = (status: string) => {
-    setSelectedStatus(prev => 
-      prev.includes(status)
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
-    );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [recipients, setRecipients] = useState<User[]>([]);
+  const [provider, setProvider] = useState<Provider>('stripe');
+  const [requestedStatus, setRequestedStatus] = useState<Status>('completed');
+  const [amounts, setAmounts] = useState({ deposit: '', withdraw: '', transfer: '' });
+  const [recipientId, setRecipientId] = useState('');
+  const [note, setNote] = useState('');
+
+  const loadData = async () => {
+    const [{ data: history }, { data: users }] = await Promise.all([
+      api.get<Transaction[]>('/payments/history'),
+      api.get<User[]>('/users'),
+    ]);
+    setTransactions(history);
+    setRecipients(users);
   };
-  
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Due Diligence':
-        return 'primary';
-      case 'Term Sheet':
-        return 'secondary';
-      case 'Negotiation':
-        return 'accent';
-      case 'Closed':
-        return 'success';
-      case 'Passed':
-        return 'error';
-      default:
-        return 'gray';
-    }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const submitPayment = async (path: 'deposit' | 'withdraw' | 'transfer') => {
+    const basePayload = {
+      provider,
+      requestedStatus,
+      paymentMethod: 'sandbox',
+      note,
+    };
+    const payload =
+      path === 'transfer'
+        ? { ...basePayload, amount: Number(amounts.transfer), recipientId }
+        : { ...basePayload, amount: Number(amounts[path]) };
+
+    await api.post(`/payments/${path}`, payload);
+    setAmounts({ deposit: '', withdraw: '', transfer: '' });
+    setRecipientId('');
+    setNote('');
+    await loadData();
   };
-  
+
+  const totalVolume = useMemo(() => transactions.reduce((sum, transaction) => sum + transaction.amount, 0), [transactions]);
+  const pendingCount = useMemo(() => transactions.filter((transaction) => transaction.status === 'pending').length, [transactions]);
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Investment Deals</h1>
-          <p className="text-gray-600">Track and manage your investment pipeline</p>
-        </div>
-        
-        <Button>
-          Add Deal
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Payment Sandbox</h1>
+        <p className="text-gray-600">Run Stripe or PayPal sandbox-style payment records with pending, completed, and failed outcomes.</p>
       </div>
-      
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardBody>
-            <div className="flex items-center">
-              <div className="p-3 bg-primary-100 rounded-lg mr-3">
-                <DollarSign size={20} className="text-primary-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Investment</p>
-                <p className="text-lg font-semibold text-gray-900">$4.3M</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        
-        <Card>
-          <CardBody>
-            <div className="flex items-center">
-              <div className="p-3 bg-secondary-100 rounded-lg mr-3">
-                <TrendingUp size={20} className="text-secondary-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Active Deals</p>
-                <p className="text-lg font-semibold text-gray-900">8</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        
-        <Card>
-          <CardBody>
-            <div className="flex items-center">
-              <div className="p-3 bg-accent-100 rounded-lg mr-3">
-                <Users size={20} className="text-accent-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Portfolio Companies</p>
-                <p className="text-lg font-semibold text-gray-900">12</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        
-        <Card>
-          <CardBody>
-            <div className="flex items-center">
-              <div className="p-3 bg-success-100 rounded-lg mr-3">
-                <Calendar size={20} className="text-success-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Closed This Month</p>
-                <p className="text-lg font-semibold text-gray-900">2</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-      
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="w-full md:w-2/3">
-          <Input
-            placeholder="Search deals by startup name or industry..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            startAdornment={<Search size={18} />}
-            fullWidth
-          />
-        </div>
-        
-        <div className="w-full md:w-1/3">
-          <div className="flex items-center gap-2">
-            <Filter size={18} className="text-gray-500" />
-            <div className="flex flex-wrap gap-2">
-              {statuses.map(status => (
-                <Badge
-                  key={status}
-                  variant={selectedStatus.includes(status) ? getStatusColor(status) : 'gray'}
-                  className="cursor-pointer"
-                  onClick={() => toggleStatus(status)}
-                >
-                  {status}
-                </Badge>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <h2 className="text-lg font-medium text-gray-900">Gateway Setup</h2>
+          </CardHeader>
+          <CardBody className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {(['stripe', 'paypal'] as Provider[]).map((entry) => (
+                <Button key={entry} variant={provider === entry ? 'primary' : 'outline'} onClick={() => setProvider(entry)}>
+                  {entry === 'stripe' ? 'Stripe' : 'PayPal'}
+                </Button>
               ))}
             </div>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Sandbox result</label>
+              <select value={requestedStatus} onChange={(e) => setRequestedStatus(e.target.value as Status)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2">
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment note</label>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={4} className="w-full rounded-md border border-gray-300 px-3 py-2" />
+            </div>
+            <div className="rounded-md bg-gray-50 p-4">
+              <div className="flex items-center gap-2 text-gray-700">
+                <CreditCard size={18} />
+                <span className="font-medium">{provider === 'stripe' ? 'Stripe Sandbox' : 'PayPal Sandbox'}</span>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">Pending count: {pendingCount}</p>
+            </div>
+          </CardBody>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-6 lg:col-span-3 lg:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-medium text-gray-900">Deposit</h2>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              <Input label="Amount" type="number" value={amounts.deposit} onChange={(e) => setAmounts({ ...amounts, deposit: e.target.value })} fullWidth />
+              <Button leftIcon={<ArrowDownCircle size={18} />} fullWidth onClick={() => submitPayment('deposit')}>
+                Create Deposit
+              </Button>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-medium text-gray-900">Withdraw</h2>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              <Input label="Amount" type="number" value={amounts.withdraw} onChange={(e) => setAmounts({ ...amounts, withdraw: e.target.value })} fullWidth />
+              <Button leftIcon={<ArrowUpCircle size={18} />} fullWidth onClick={() => submitPayment('withdraw')}>
+                Create Withdrawal
+              </Button>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-medium text-gray-900">Transfer</h2>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              <Input label="Amount" type="number" value={amounts.transfer} onChange={(e) => setAmounts({ ...amounts, transfer: e.target.value })} fullWidth />
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Recipient</label>
+                <select
+                  value={recipientId}
+                  onChange={(e) => setRecipientId(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                >
+                  <option value="">Select a user</option>
+                  {recipients.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button leftIcon={<ArrowLeftRight size={18} />} fullWidth onClick={() => submitPayment('transfer')}>
+                Create Transfer
+              </Button>
+            </CardBody>
+          </Card>
         </div>
       </div>
-      
-      {/* Deals table */}
+
       <Card>
-        <CardHeader>
-          <h2 className="text-lg font-medium text-gray-900">Active Deals</h2>
-        </CardHeader>
-        <CardBody>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Startup
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Equity
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stage
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Activity
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {deals.map(deal => (
-                  <tr key={deal.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Avatar
-                          src={deal.startup.logo}
-                          alt={deal.startup.name}
-                          size="sm"
-                          className="flex-shrink-0"
-                        />
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {deal.startup.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {deal.startup.industry}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{deal.amount}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{deal.equity}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={getStatusColor(deal.status)}>
-                        {deal.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{deal.stage}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {new Date(deal.lastActivity).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <CardHeader className="flex items-center justify-between">
+          <h2 className="text-lg font-medium text-gray-900">Transaction History</h2>
+          <div className="flex items-center gap-2 text-gray-600">
+            <Wallet size={18} />
+            <span className="text-sm font-medium">Total volume: ${totalVolume.toFixed(2)}</span>
           </div>
+        </CardHeader>
+        <CardBody className="space-y-3">
+          {transactions.map((transaction) => (
+            <div key={transaction._id} className="rounded-lg border border-gray-200 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium capitalize text-gray-900">{transaction.type}</h3>
+                    <Badge variant={transaction.status === 'completed' ? 'success' : transaction.status === 'failed' ? 'error' : 'secondary'}>
+                      {transaction.status}
+                    </Badge>
+                    <Badge variant="gray">{transaction.provider}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Ref {transaction.reference} • Session {transaction.providerSessionId}
+                    {transaction.counterpartyUserId ? ` • Recipient: ${transaction.counterpartyUserId.name}` : ''}
+                  </p>
+                  {transaction.note && <p className="mt-1 text-sm text-gray-600">{transaction.note}</p>}
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-gray-900">${transaction.amount.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">{new Date(transaction.createdAt).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+          {transactions.length === 0 && <p className="text-sm text-gray-500">No transactions recorded yet.</p>}
         </CardBody>
       </Card>
     </div>
