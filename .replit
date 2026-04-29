@@ -1,9 +1,1 @@
-run = "cd backend && npm start"
-modules = ["nodejs-18"]
-entrypoint = "backend/src/index.js"
-
-[nix]
-channel = "stable-23_05"
-
-[env]
-PORT = "3000"
+run = "cd backend && npm install && npm start"
